@@ -4,38 +4,55 @@
 
 <script>
 import * as THREE from "three";
-
-// import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
-// import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
-// import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
-
-// import vertex from "@/assets/js/shaders/vertex.vert";
-// import fragment from "@/assets/js/shaders/fragment.frag";
+import { Layers } from "three";
 
 var renderHidden = false;
+var lastMouseX = -1,
+  lastMouseY = -1,
+  newMouseX = -1,
+  newMouseY = -1;
+
+const fragment = `
+varying vec3 vPosition;
+varying vec2 vUv;
+
+vec2 brickTile(vec2 _st, float _zoom) {
+  _st *= _zoom;
+  _st.x += step(1.0, mod(_st.y, 2.0));
+  return fract(_st);
+}
+float box(vec2 _st, vec2 _size) {
+  _size = vec2(0.5) - _size * 0.54;
+  vec2 uv = smoothstep(_size, _size + vec2(1e-4), _st);
+  uv *= smoothstep(_size, _size + vec2(1e-4), vec2(1.0) - _st);
+  return uv.x * uv.y;
+}
+void main(void) {
+  vec2 st = vPosition.xy;
+  st = brickTile(st, 1800.0);
+  vec3 color = vec3(box(st, vec2(0.9)));
+  gl_FragColor = vec4(color, 1.0);
+}
+`;
 const vertex = `
 uniform float uTime;
 varying vec2 vUv;
+varying vec3 vPosition;
 void main() {
+  vPosition = position.xyz;
   vUv = uv;
-  vec3 delta = normal * sin(position.x/3.0 * position.y/12.0 + uTime*30.0 + position.z/10.0);
+  vec3 delta = normal * sin(position.x/5.5 * position.y/12.0 + uTime*30.0 + position.z/10.0);
   vec3 newPosition = position + delta;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
 }
 `;
-const fragment = `
+const fragment2 = `
 uniform float uTime;
 varying vec2 vUv;
-
-float alphaFire() {
-  float alpha; 
-  alpha = sin(uTime*30.0)/16.0+(1.0-vUv.y*1.6)-(vUv.x*0.0);
-  //alpha = cos((vUv.x+fract(vUv.y))*80.0);
-  return(alpha);
-}
+varying vec3 vPosition;
 void main() {
-   //gl_FragColor = alphaFire();
-   gl_FragColor = vec4(0.173, 0.635, 1., sin(uTime*30.0)/16.0+(1.0-vUv.y*1.6)-(vUv.x*0.0));
+   //gl_FragColor = vec4(0.173, 0.635, 1., sin(uTime*30.0)/16.0+(1.0-vUv.y*1.6)-(vUv.x*0.0));
+   gl_FragColor = vec4(0.75, 0.35-vPosition.y/32.0, 0.70, sin(uTime*30.0)/16.0+(1.0-vUv.y*1.6)-(vUv.x*0.0));
 }
 `;
 
@@ -43,6 +60,8 @@ export default {
   name: "Three",
   data() {
     return {
+      mouseSpeedX: null,
+      mouseSpeedY: null,
       noiseTexture: null,
       rAF: null,
       camera: null,
@@ -79,11 +98,9 @@ export default {
   methods: {
     init() {
       this.container = this.$refs.container;
-
       this.initScene();
       this.initCamera();
       this.initRenderer();
-      // this.initComposer()
       this.initEventListeners();
       this.createObjects();
 
@@ -147,26 +164,17 @@ export default {
       this.renderer.setClearColor(this.bg_color, 1);
     },
     initComposer() {
-      // this.composer = new EffectComposer(this.renderer)
-      // this.composer.setSize(
-      //   this.container.offsetWidth / this.container.offsetHeight,
-      // )
-
-      // this.renderPass = new RenderPass(this.scene, this.camera)
-      // this.composer.addPass(this.renderPass)
-
-      // this.bloomPass = new UnrealBloomPass(
-      //   new Vector2(this.container.offsetWidth / this.container.offsetHeight),
-      //   1.5,
-      //   1,
-      //   0.1,
-      // )
-      // this.bloomPass.renderToScreen = true
       this.composer.addPass(this.bloomPass);
     },
     initEventListeners() {
       this.onWindowResize();
       window.addEventListener("resize", this.onWindowResize, false);
+      window.addEventListener("mousemove", (e) => {
+        //this.mouseSpeedX = e.pageX - lastMouseX;
+        //this.mouseSpeedY = e.pageY - lastMouseY;
+        //lastMouseX = e.pageX;
+        //lastMouseY = e.pageY;
+      });
     },
     onWindowResize() {
       this.camera.aspect =
@@ -176,18 +184,15 @@ export default {
         this.container.offsetHeight
       );
       this.camera.updateProjectionMatrix();
-      // this.composer.setSize(
-      //   this.container.offsetWidth,
-      //   this.container.offsetHeight,
-      // )
     },
     createObjects() {
       this.uniforms = {
         uTime: { type: "f", value: this.time },
+        uMouseSpeed: { type: "vec2", value: lastMouseX, lastMouseY },
       };
 
-      this.geometry_small = new THREE.SphereBufferGeometry(27, 64, 64);
-      this.geometry = new THREE.SphereBufferGeometry(30, 64, 64);
+      this.geometry_small = new THREE.SphereBufferGeometry(26, 64, 64);
+      this.geometry = new THREE.SphereBufferGeometry(31, 64, 64);
 
       this.materialPhong = new THREE.MeshPhongMaterial({
         color: 0x050113,
@@ -195,7 +200,7 @@ export default {
         specular: 0xccddff,
         shininess: 3.0,
         transparent: true,
-        opacity: 0.4,
+        opacity: 0.5,
       });
       this.material = new THREE.ShaderMaterial({
         uniforms: this.uniforms,
@@ -219,12 +224,10 @@ export default {
       this.scene.add(this.sphere_small);
     },
     animate() {
-      if (!renderHidden) {
-        this.raF = requestAnimationFrame(this.animate);
-        this.time += 0.005;
-        this.updateUniforms();
-        this.render();
-      }
+      this.raF = requestAnimationFrame(this.animate);
+      this.time += 0.005;
+      this.updateUniforms();
+      this.render();
     },
     updateUniforms() {
       this.scene.traverse((child) => {
@@ -233,20 +236,16 @@ export default {
           child.material.type === "ShaderMaterial"
         ) {
           child.material.uniforms.uTime.value = this.time;
+          //child.material.uniforms.uMouseSpeed.x = this.mouseSpeedX;
+          //child.material.uniforms.uMouseSpeed.y = this.mouseSpeedY;
           child.material.needsUpdate = true;
         }
       });
     },
     render() {
-      //if (!renderHidden){
       this.camera.lookAt(this.scene.position);
-      // this.composer.render(this.scene, this.camera)
       this.renderer.render(this.scene, this.camera);
-      //}
     },
-    // stopRender(af) {
-    // cancelAnimationFrame(af);
-    // },
   },
 };
 </script>
