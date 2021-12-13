@@ -1,2 +1,3 @@
-# SheenShader
-Created with CodeSandbox
+# Sheen Shader
+
+🔥🔥🔥 Simple burning sphere shader 🔥🔥🔥
