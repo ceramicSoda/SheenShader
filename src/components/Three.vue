@@ -155,8 +155,8 @@ export default {
         uTime: { type: "f", value: this.time },
       };
 
-      this.geometry_small = new THREE.SphereBufferGeometry(26, 64, 64);
-      this.geometry = new THREE.SphereBufferGeometry(31, 64, 64);
+      this.geometry_small = new THREE.SphereBufferGeometry(22, 64, 64);
+      this.geometry = new THREE.SphereBufferGeometry(26, 64, 64);
 
       this.materialPhong = new THREE.MeshPhongMaterial({
         color: 0x050113,
