@@ -1,3 +1,3 @@
 # Sheen Shader
 
-🔥🔥🔥 Simple burning sphere shader 🔥🔥🔥
+🔥 Simple burning sphere shader 🔥
