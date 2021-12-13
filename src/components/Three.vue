@@ -4,13 +4,6 @@
 
 <script>
 import * as THREE from "three";
-import { Layers } from "three";
-
-var renderHidden = false;
-var lastMouseX = -1,
-  lastMouseY = -1,
-  newMouseX = -1,
-  newMouseY = -1;
 
 const vertex = `
 uniform float uTime;
@@ -147,12 +140,6 @@ export default {
     initEventListeners() {
       this.onWindowResize();
       window.addEventListener("resize", this.onWindowResize, false);
-      window.addEventListener("mousemove", (e) => {
-        //this.mouseSpeedX = e.pageX - lastMouseX;
-        //this.mouseSpeedY = e.pageY - lastMouseY;
-        //lastMouseX = e.pageX;
-        //lastMouseY = e.pageY;
-      });
     },
     onWindowResize() {
       this.camera.aspect =
@@ -166,7 +153,6 @@ export default {
     createObjects() {
       this.uniforms = {
         uTime: { type: "f", value: this.time },
-        uMouseSpeed: { type: "vec2", value: lastMouseX, lastMouseY },
       };
 
       this.geometry_small = new THREE.SphereBufferGeometry(26, 64, 64);
@@ -214,8 +200,6 @@ export default {
           child.material.type === "ShaderMaterial"
         ) {
           child.material.uniforms.uTime.value = this.time;
-          //child.material.uniforms.uMouseSpeed.x = this.mouseSpeedX;
-          //child.material.uniforms.uMouseSpeed.y = this.mouseSpeedY;
           child.material.needsUpdate = true;
         }
       });
